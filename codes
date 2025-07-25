@@ -1,0 +1,147 @@
+Step 1: Load Wallet Addresses from CSV:
+import pandas as pd
+wallet_df = pd.read_csv("/content/Wallet id - Sheet1.csv")
+wallet_df.head()
+
+  🧪 Step 2: Simulate On-Chain Data:
+import random
+import pandas as pd
+
+def simulate_wallet_behavior(wallet_address):
+    """
+Simulate DeFi activity metrics for a wallet.
+These values are placeholders and mimic real on-chain behavior.
+    """
+    return {
+"wallet": wallet_address,
+"total_supplied": random.uniform(1_000, 100_000),  # Collateral supplied by the wallet
+"total_borrowed": random.uniform(500, 80_000),     # Total tokens borrowed
+"num_liquidations": random.randint(0, 5),          # Times the wallet was liquidated
+"borrowed_asset_diversity": random.randint(1, 5),  # How many unique tokens borrowed
+"avg_txn_freq": random.uniform(1, 50),             # Avg. monthly lending-related transactions
+"debt_volatility": random.uniform(0.05, 0.6)       # Std. dev of debt over time (risk proxy)
+    }
+
+
+wallet_simulations = [simulate_wallet_behavior(wallet) for wallet in wallet_df['wallet_id']]
+
+
+df = pd.DataFrame(wallet_simulations)
+
+
+df["collateral_ratio"] = df["total_supplied"] / (df["total_borrowed"] + 1e-6)
+
+
+df.head()
+
+⚙️ Step 3: Normalize Features:
+
+from sklearn.preprocessing import MinMaxScaler
+
+
+features_to_scale = [
+    "collateral_ratio",             # Ratio of collateral to borrowed value
+    "num_liquidations",             # Number of times liquidated (more = riskier)
+    "borrowed_asset_diversity",     # Number of unique tokens borrowed
+    "avg_txn_freq",                 # Average monthly transaction activity
+    "debt_volatility"              # Volatility in debt value (higher = riskier)
+]
+
+
+df_scaled = df.copy()
+
+
+scaler = MinMaxScaler()
+df_scaled[features_to_scale] = scaler.fit_transform(df_scaled[features_to_scale])
+
+
+df_scaled.head()
+
+
+🧮 Step 4: Apply Risk Scoring Logic:
+
+import numpy as np
+
+
+def score_wallet(row):
+    """
+    Assigns a risk score (0 to 1000) to a wallet based on its DeFi activity.
+    
+    Higher score = lower risk
+    Lower score = higher risk
+    """
+    score = 1000  
+
+ 
+    score -= row["num_liquidations"] * 150  # Liquidations are bad
+    score -= (1 - row["collateral_ratio"]) * 300  # Low collateral ratio is risky
+    score -= row["debt_volatility"] * 200  # Volatile debt signals instability
+
+    
+    score += row["avg_txn_freq"] * 5  # Active wallets are assumed safer
+    score += row["borrowed_asset_diversity"] * 20  # Diversified borrowing is better
+
+    
+    return np.clip(score, 0, 1000)
+
+
+df_scaled["risk_score"] = df_scaled.apply(score_wallet, axis=1).round(2)
+
+df_scaled[["wallet", "risk_score"]].head()
+
+
+📊 Step 5: Score Distribution Plot:
+mport numpy as np
+
+
+def score_wallet(row):
+    """
+    Assigns a risk score (0 to 1000) to a wallet based on its DeFi activity.
+    
+    Higher score = lower risk
+    Lower score = higher risk
+    """
+    score = 1000  
+
+ 
+    score -= row["num_liquidations"] * 150  # Liquidations are bad
+    score -= (1 - row["collateral_ratio"]) * 300  # Low collateral ratio is risky
+    score -= row["debt_volatility"] * 200  # Volatile debt signals instability
+
+    
+    score += row["avg_txn_freq"] * 5  # Active wallets are assumed safer
+    score += row["borrowed_asset_diversity"] * 20  # Diversified borrowing is better
+
+    
+    return np.clip(score, 0, 1000)
+
+
+df_scaled["risk_score"] = df_scaled.apply(score_wallet, axis=1).round(2)
+
+df_scaled[["wallet", "risk_score"]].head()
+
+import matplotlib.pyplot as plt
+
+
+plt.figure(figsize=(8, 5))  # Width = 8 inches, Height = 5 inches
+
+
+plt.hist(
+    df_scaled["risk_score"],   # Data to plot
+    bins=10,                   # Number of buckets (0–1000 split into 10 parts)
+    color='skyblue',           # Bar color
+    edgecolor='black'          # Border around each bar
+)
+
+
+plt.title("Risk Score Distribution")      # Chart title
+plt.xlabel("Risk Score")                  # X-axis label
+plt.ylabel("Number of Wallets")           # Y-axis label
+
+
+plt.grid(True)
+
+
+plt.show()
+
+
